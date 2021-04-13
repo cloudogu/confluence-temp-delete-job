@@ -196,6 +196,24 @@ func TestResults_skip(t *testing.T) {
 	assert.Equal(t, 9, sut.skipped)
 }
 
+func Test_deleter_filterOldFiles(t *testing.T) {
+	t.Run("should skip directories", func(t *testing.T) {
+		dir, _ := ioutil.TempDir(os.TempDir(), "tempdel-")
+		defer func() { _ = os.RemoveAll(dir) }()
+		innerDir, _ := ioutil.TempDir(dir, "tempdel-")
+
+		sut, _ := New(Args{Directory: dir, MaxAgeInHours: testMaxAgeInHours})
+		innerDirStats, _ := os.Stat(innerDir)
+
+		// when
+		err := sut.filterOldFiles(innerDir, innerDirStats, nil)
+
+		require.NoError(t, err)
+		_, err = os.Stat(innerDir)
+		assert.NoError(t, err)
+	})
+}
+
 type testClock struct {
 	desiredTime time.Time
 }
