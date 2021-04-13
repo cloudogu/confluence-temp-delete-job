@@ -2,6 +2,10 @@ package deletion
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 )
@@ -47,6 +51,49 @@ func TestNew(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_deleter_deleteFile(t *testing.T) {
+	t.Run("should delete file and update stats", func(t *testing.T) {
+		// given
+		dir, _ := ioutil.TempDir(os.TempDir(), "tempdel-")
+		defer func() { _ = os.RemoveAll(dir) }()
+		oldness := nowClock.Now().Add(-20 * time.Hour)
+		file := createFileWithTime(t, dir, oldness)
+
+		sut, _ := New(Args{Directory: dir, MaxAgeInHours: testMaxAgeInHours})
+		assert.Empty(t, sut.Results)
+
+		// when
+		err := sut.deleteFile(file)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, 1, sut.Results.passed)
+		assert.Equal(t, 0, sut.Results.failed)
+		assert.Equal(t, 0, sut.Results.skipped)
+	})
+
+	t.Run("should error on file error and update stats", func(t *testing.T) {
+		// given
+		const path = "/some/error/will/occur/here"
+		removerMock := &mockFileRemover{}
+		removerMock.On("Remove", path).Return(os.ErrNotExist)
+		remover = removerMock
+
+		sut, _ := New(Args{Directory: "dir", MaxAgeInHours: testMaxAgeInHours})
+
+		// when
+		err := sut.deleteFile(path)
+
+		// then
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "file does not exist")
+		assert.Equal(t, 0, sut.Results.passed)
+		assert.Equal(t, 1, sut.Results.failed)
+		assert.Equal(t, 0, sut.Results.skipped)
+		(remover).(*mockFileRemover).AssertExpectations(t)
+	})
 }
 
 func Test_fileOlderThan(t *testing.T) {
@@ -121,4 +168,25 @@ type testClock struct {
 
 func (t *testClock) Now() time.Time {
 	return t.desiredTime
+}
+
+func createFileWithTime(t *testing.T, directory string, fileTime time.Time) string {
+	t.Helper()
+
+	file, _ := ioutil.TempFile(directory, "tempdel-")
+	filePath := file.Name()
+
+	err := os.Chtimes(filePath, fileTime, fileTime)
+	assert.NoError(t, err)
+
+	return filePath
+}
+
+type mockFileRemover struct {
+	mock.Mock
+}
+
+func (m *mockFileRemover) Remove(path string) error {
+	args := m.Called(path)
+	return args.Error(0)
 }
