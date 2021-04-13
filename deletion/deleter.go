@@ -90,9 +90,9 @@ func (d *deleter) filterOldFiles(path string, info os.FileInfo, err error) error
 func (d *deleter) deleteFile(path string) error {
 	err := remover.Remove(path)
 	if err != nil {
-		d.Results.Fail(path, err)
+		d.Results.fail(path, err)
 	} else {
-		d.Results.Pass(path)
+		d.Results.pass(path)
 	}
 
 	return err
@@ -119,12 +119,12 @@ func (r *Results) PrintStats() {
 
 }
 
-func (r *Results) Fail(path string, err error) {
+func (r *Results) fail(path string, err error) {
 	log.Debugf("failed: %s with error '%v'", path, err)
 	r.failed++
 }
 
-func (r *Results) Pass(path string) {
+func (r *Results) pass(path string) {
 	log.Debugf("passed: %s", path)
 	r.passed++
 }

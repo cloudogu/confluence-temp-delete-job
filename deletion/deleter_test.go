@@ -1,6 +1,7 @@
 package deletion
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -160,6 +161,39 @@ func Test_fileOlderThan(t *testing.T) {
 		// then
 		assert.False(t, actual)
 	})
+}
+
+func TestResults_fail(t *testing.T) {
+	sut := &Results{}
+
+	// when
+	for i := 0; i < 9; i++ {
+		sut.fail(fmt.Sprintf("file /file_%d", i), assert.AnError)
+	}
+
+	assert.Equal(t, 9, sut.failed)
+}
+
+func TestResults_pass(t *testing.T) {
+	sut := &Results{}
+
+	// when
+	for i := 0; i < 9; i++ {
+		sut.pass(fmt.Sprintf("file /file_%d", i))
+	}
+
+	assert.Equal(t, 9, sut.passed)
+}
+
+func TestResults_skip(t *testing.T) {
+	sut := &Results{}
+
+	// when
+	for i := 0; i < 9; i++ {
+		sut.skip(fmt.Sprintf("file /file_%d", i))
+	}
+
+	assert.Equal(t, 9, sut.skipped)
 }
 
 type testClock struct {
