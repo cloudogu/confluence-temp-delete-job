@@ -60,15 +60,14 @@ func Test_deleteFiles(t *testing.T) {
 		assert.Contains(t, actualOutput, flagMaxAgeHoursLong)
 	})
 	t.Run("should succeed", func(t *testing.T) {
-		dir, _ := ioutil.TempFile(os.TempDir(), "tempdel-")
-		path := dir.Name()
-		defer func() { _ = os.RemoveAll(path) }()
+		dir, _ := ioutil.TempDir(os.TempDir(), "tempdel-")
+		defer func() { _ = os.RemoveAll(dir) }()
 		defer restoreOriginalStdout(realStdout)
 
 		sut := DeleteFilesCommand
 		fakeReaderPipe, fakeWriterPipe := routeStdoutToReplacement()
 
-		cliArgs := []string{path}
+		cliArgs := []string{dir}
 		c := getTestCliContextForCommand(t, sut, fakeWriterPipe, cliArgs)
 
 		// when
