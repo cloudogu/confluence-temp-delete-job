@@ -59,7 +59,7 @@ func deleteFilesWithArgs(args deletion.Args) error {
 	if err != nil {
 		return errors.Wrap(err, "an error occurred during deletion")
 	}
-	results.Print()
+	results.PrintStats()
 
 	return nil
 }
