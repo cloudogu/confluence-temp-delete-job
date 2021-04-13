@@ -1,5 +1,7 @@
 package deletion
 
+import "errors"
+
 // Args transports CLI parameters to the business package.
 type Args struct {
 	// Directory names the starting directory which the deleter will recursively inspect for old files.
@@ -9,15 +11,17 @@ type Args struct {
 }
 
 type deleter struct {
+	Args
 }
 
 func New(args Args) (*deleter, error) {
-	var directory string
-
-	if directory == "1" {
-
+	if args.Directory == "" {
+		return nil, errors.New("directory must not be empty")
 	}
-	return nil, nil
+	if args.MaxAgeInHours < 0 {
+		return nil, errors.New("file age must zero or positive")
+	}
+	return &deleter{args}, nil
 }
 
 func (d *deleter) Execute() (*Results, error) {
