@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/cloudogu/confluence-temp-delete-job/deletion"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
 
@@ -29,13 +31,35 @@ var DeleteFilesCommand = &cli.Command{
 }
 
 func deleteFiles(c *cli.Context) error {
-	cliArgs := c.Args()
+	directory := ""
 	maxAgeInHours := c.Int(flagMaxAgeHoursLong)
 
-	args := deletion.Args{CliArgs: cliArgs, MaxAgeInHours: maxAgeInHours}
+	switch c.Args().Len() {
+	case 1:
+		directory = c.Args().First()
+	case 0:
+		_ = cli.ShowAppHelp(c)
+		return fmt.Errorf("expected directory")
+	default:
+		_ = cli.ShowAppHelp(c)
+		return fmt.Errorf("unexpected argument(s) found: %v", c.Args().Slice()[1:])
+	}
+
+	args := deletion.Args{Directory: directory, MaxAgeInHours: maxAgeInHours}
 	return deleteFilesWithArgs(args)
 }
 
 func deleteFilesWithArgs(args deletion.Args) error {
+	deleter, err := deletion.New(args)
+	if err != nil {
+		return errors.Wrap(err, "could not create deleter")
+	}
+
+	results, err := deleter.Execute()
+	if err != nil {
+		return errors.Wrap(err, "an error occurred during deletion")
+	}
+	results.Print()
+
 	return nil
 }
