@@ -82,7 +82,7 @@ func registerUnixSignals() (loopStopper chan bool) {
 	loopStopper = make(chan bool, 1)
 	procSignals := make(chan os.Signal, 1)
 
-	signal.Notify(procSignals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGKILL)
+	signal.Notify(procSignals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
 	go func() {
 		for range procSignals {
