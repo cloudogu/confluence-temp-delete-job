@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 )
 
 func Test_deleteFilesWithArgs(t *testing.T) {
@@ -41,6 +42,34 @@ func Test_deleteFilesWithArgs(t *testing.T) {
 		// then
 		require.NoError(t, err)
 
+		actualOutput := captureOutput(fakeReaderPipe, fakeWriterPipe, realStdout)
+		assert.Equal(t, "[tempdel] deleted: 0 (0 MB), skipped: 0, failed: 0\n", actualOutput)
+	})
+}
+
+func Test_runDeletionLoop(t *testing.T) {
+	realStdout := os.Stdout
+
+	t.Run("should succeed", func(t *testing.T) {
+		dir, _ := ioutil.TempDir(os.TempDir(), "tempdel-")
+		defer func() { _ = os.RemoveAll(dir) }()
+		defer restoreOriginalStdout(realStdout)
+		stopChan := make(chan bool, 1)
+
+		fakeReaderPipe, fakeWriterPipe := routeStdoutToReplacement()
+		args := deletion.Args{
+			Directory:     dir,
+			MaxAgeInHours: 12,
+		}
+
+		// when
+		go runDeletionLoop(args, 1, stopChan)
+
+		// stop when loop ran 1x
+		time.Sleep(2 * time.Second)
+		stopChan <- true
+
+		// then
 		actualOutput := captureOutput(fakeReaderPipe, fakeWriterPipe, realStdout)
 		assert.Equal(t, "[tempdel] deleted: 0 (0 MB), skipped: 0, failed: 0\n", actualOutput)
 	})

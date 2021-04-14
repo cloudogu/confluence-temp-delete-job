@@ -49,7 +49,8 @@ var DeleteFilesCommand = &cli.Command{
 func deleteFiles(c *cli.Context) error {
 	directory := ""
 	maxAgeInHours := c.Int(flagMaxAgeHoursLong)
-	loopInterval := c.Int(flagLoopIntervalLong)
+	loopIntervalInMin := c.Int(flagLoopIntervalLong)
+	loopIntervalInSecs := loopIntervalInMin * 60
 
 	switch c.Args().Len() {
 	case 1:
@@ -67,7 +68,7 @@ func deleteFiles(c *cli.Context) error {
 	loopStopper := registerUnixSignals()
 	defer close(loopStopper)
 
-	runDeletionLoop(args, loopInterval, loopStopper)
+	runDeletionLoop(args, loopIntervalInSecs, loopStopper)
 
 	return nil
 }
@@ -97,9 +98,10 @@ func registerUnixSignals() (loopStopper chan bool) {
 	return loopStopper
 }
 
-func runDeletionLoop(args deletion.Args, interval int, loopStopper chan bool) {
+// the interval is here chosen for seconds for reasons of unit test duration
+func runDeletionLoop(args deletion.Args, intervalInSecs int, loopStopper chan bool) {
 	var err error
-	intervalInMin := time.Duration(interval) * time.Minute
+	intervalInMin := time.Duration(intervalInSecs) * time.Second
 	ticker := time.NewTicker(intervalInMin)
 
 	for {
@@ -107,7 +109,7 @@ func runDeletionLoop(args deletion.Args, interval int, loopStopper chan bool) {
 		case <-loopStopper:
 			ticker.Stop()
 			fmt.Println("[tempdel] Exiting tempdel...")
-			os.Exit(0)
+			return
 		case <-ticker.C:
 			log.Debug("[tempdel] Start deletion run...")
 			err = deleteFilesWithArgs(args)
@@ -118,7 +120,6 @@ func runDeletionLoop(args deletion.Args, interval int, loopStopper chan bool) {
 		default:
 		}
 	}
-
 }
 
 func deleteFilesWithArgs(args deletion.Args) error {
