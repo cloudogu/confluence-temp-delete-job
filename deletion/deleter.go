@@ -2,8 +2,10 @@ package deletion
 
 import (
 	"errors"
+	"github.com/hashicorp/go-multierror"
 	"github.com/op/go-logging"
 	errors2 "github.com/pkg/errors"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -61,12 +63,22 @@ func New(args Args) (*deleter, error) {
 }
 
 func (d *deleter) Execute() (*Results, error) {
-	err := filepath.Walk(d.Directory, d.filterOldFiles)
-	if err != nil {
-		return d.Results, err
+	var err error
+
+	log.Debug("Start recursive file deletion")
+	fileErr := filepath.Walk(d.Directory, d.filterOldFiles)
+	if fileErr != nil {
+		err = multierror.Append(err, fileErr)
 	}
 
-	return d.Results, nil
+	log.Debug("Start recursive directory deletion")
+	// delete old and empty directories because recursive directories are complicated during the first file walk
+	dirErr := filepath.Walk(d.Directory, d.filterOldDirectories)
+	if dirErr != nil {
+		err = multierror.Append(err, dirErr)
+	}
+
+	return d.Results, err
 }
 
 func (d *deleter) filterOldFiles(path string, info os.FileInfo, err error) error {
@@ -87,6 +99,53 @@ func (d *deleter) filterOldFiles(path string, info os.FileInfo, err error) error
 	return nil
 }
 
+func (d *deleter) filterOldDirectories(path string, info os.FileInfo, err error) error {
+	if err != nil {
+		return errors2.Wrapf(err, "error while visiting path %q", path)
+	}
+
+	// do not count-in the start directory, not even into the skipping counter
+	if path == d.Directory {
+		return nil
+	}
+
+	if !info.IsDir() {
+		log.Debug("walk directories: skip file %s", path)
+		return nil
+	}
+
+	empty, err := isDirectoryEmpty(path)
+	if err != nil {
+		return errors2.Wrapf(err, "error while checking directory contents for path %q", path)
+	}
+
+	// deleting empty directories is simpler than checking the timestamp because the timestamp changes on every
+	// file deletion inside the directory
+	if empty {
+		return d.deleteFile(path)
+	}
+	d.Results.skip(path)
+
+	return nil
+}
+
+// taken from https://stackoverflow.com/a/30708914/12529534
+func isDirectoryEmpty(name string) (bool, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = f.Close() }()
+
+	const limitFileCount = 2 // we only want to know if the dir is empty and not how many objects there are
+	fileInfos, err := f.Readdir(limitFileCount)
+	if err == io.EOF {
+		return true, nil
+	}
+	println(fileInfos)
+	return false, err
+}
+
 func (d *deleter) deleteFile(path string) error {
 	err := remover.Remove(path)
 	if err != nil {
@@ -102,7 +161,8 @@ func fileOlderThan(maxAgeHours int, fileTime time.Time) bool {
 	ageCutOff := time.Duration(maxAgeHours) * time.Hour
 	now := nowClock.Now()
 
-	if diff := now.Sub(fileTime); diff <= ageCutOff {
+	diff := now.Sub(fileTime)
+	if diff <= ageCutOff {
 		return false
 	}
 	return true
@@ -125,7 +185,7 @@ func (r *Results) fail(path string, err error) {
 }
 
 func (r *Results) pass(path string) {
-	log.Debugf("passed: %s", path)
+	log.Debugf("deleted: %s", path)
 	r.passed++
 }
 

@@ -246,6 +246,78 @@ func Test_deleter_Execute(t *testing.T) {
 		assertFileExists(t, leaveFile1)
 		assertFileExists(t, leaveFile2)
 	})
+	t.Run("should delete empty directories and leave new files", func(t *testing.T) {
+		// given
+		startDir, _ := ioutil.TempDir(os.TempDir(), "tempdel-")
+		defer func() { _ = os.RemoveAll(startDir) }()
+		// Name files ABC... because fileWalk iterates files alphabetically
+		oldTime := nowClock.Now().Add(-20 * time.Hour)
+		newTime := nowClock.Now().Add(-2 * time.Hour)
+
+		// note that the dir timestamp will change upon file deletion
+		deleteDir1, _ := ioutil.TempDir(startDir, "a-del-dir-")
+		_ = os.Chtimes(deleteDir1, oldTime, oldTime)
+
+		deleteFile2 := createFileWithTime(t, deleteDir1, "a-del-file", oldTime)
+		leaveFile1 := createFileWithTime(t, startDir, "b-stay-file", newTime)
+		deleteFile3 := createFileWithTime(t, startDir, "c-del-file", oldTime)
+		leaveFile2 := createFileWithTime(t, startDir, "d-stay", newTime)
+
+		sut, _ := New(Args{Directory: startDir, MaxAgeInHours: testMaxAgeInHours})
+
+		// when
+		actual, err := sut.Execute()
+
+		// then
+		require.NoError(t, err)
+		expectedStats := Results{
+			passed:  3,
+			failed:  0,
+			skipped: 2,
+		}
+		assert.Equal(t, expectedStats, *actual)
+		assertFileNotExists(t, deleteDir1)
+		assertFileNotExists(t, deleteFile2)
+		assertFileNotExists(t, deleteFile3)
+		assertFileExists(t, leaveFile1)
+		assertFileExists(t, leaveFile2)
+	})
+	t.Run("should not delete non-empty directories that contain new files", func(t *testing.T) {
+		// given
+		startDir, _ := ioutil.TempDir(os.TempDir(), "tempdel-")
+		defer func() { _ = os.RemoveAll(startDir) }()
+		// Name files ABC... because fileWalk iterates files alphabetically
+		oldTime := nowClock.Now().Add(-20 * time.Hour)
+		newTime := nowClock.Now().Add(-2 * time.Hour)
+
+		// note that the dir timestamp will change upon file deletion
+		leaveDir1, _ := ioutil.TempDir(startDir, "a-stay-dir-")
+		_ = os.Chtimes(leaveDir1, oldTime, oldTime)
+
+		deleteFile2 := createFileWithTime(t, leaveDir1, "a-del-file", oldTime)
+		leaveFile1 := createFileWithTime(t, leaveDir1, "b-stay-file", newTime)
+		deleteFile3 := createFileWithTime(t, startDir, "c-del-file", oldTime)
+		leaveFile2 := createFileWithTime(t, startDir, "d-stay", newTime)
+
+		sut, _ := New(Args{Directory: startDir, MaxAgeInHours: testMaxAgeInHours})
+
+		// when
+		actual, err := sut.Execute()
+
+		// then
+		require.NoError(t, err)
+		expectedStats := Results{
+			passed:  2,
+			failed:  0,
+			skipped: 3,
+		}
+		assert.Equal(t, expectedStats, *actual)
+		assertFileNotExists(t, deleteFile2)
+		assertFileNotExists(t, deleteFile3)
+		assertFileExists(t, leaveDir1)
+		assertFileExists(t, leaveFile1)
+		assertFileExists(t, leaveFile2)
+	})
 }
 
 func assertFileExists(t *testing.T, path string) {
