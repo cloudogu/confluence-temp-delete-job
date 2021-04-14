@@ -3,29 +3,45 @@ package cmd
 import (
 	"fmt"
 	"github.com/cloudogu/confluence-temp-delete-job/deletion"
+	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 const (
-	flagMaxAgeHoursLong  = "age"
-	flagMaxAgeHoursShort = "a"
+	flagMaxAgeHoursLong   = "age"
+	flagMaxAgeHoursShort  = "a"
+	flagLoopIntervalLong  = "interval"
+	flagLoopIntervalShort = "i"
 )
+
+var log = logging.MustGetLogger("cmd")
 
 // DeleteFilesCommand provides CLI entry logic for deleting files..
 var DeleteFilesCommand = &cli.Command{
-	Name:  "delete",
-	Usage: "Recursively delete files and directories according the given parameters",
+	Name:  "delete-loop",
+	Usage: "Endless loop that recursively deletes files and directories according the given parameters",
 	Description: "This command recursively walks the given start directory and deletes files older than the given `age`. " +
-		"Directories will only be deleted last and only if there are no files left to be contained.",
+		"Directories will only be deleted last and only if there are no files left to be contained. The loop will run " +
+		"eternally until it receives the following signals: SIGHUP, SIGINT (Strg+C), SIGTERM, SIGKILL.",
 	Action:    deleteFiles,
 	ArgsUsage: "directory",
 	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:     flagMaxAgeHoursLong,
-			Usage:    "Sets the max. age of files and directories in hours that will be deleted. Must be larger than zero.",
-			Required: true,
-			Aliases:  []string{flagMaxAgeHoursShort},
+		&cli.IntFlag{
+			Name:    flagMaxAgeHoursLong,
+			Usage:   "Sets the max. age of files and directories in hours that will be deleted. Must be larger than zero.",
+			Value:   12,
+			Aliases: []string{flagMaxAgeHoursShort},
+		},
+		&cli.IntFlag{
+			Name:    flagLoopIntervalLong,
+			Usage:   "Sets the interval in minutes to run the deletion routine. Must be larger than zero.",
+			Value:   60,
+			Aliases: []string{flagLoopIntervalShort},
 		},
 	},
 }
@@ -33,6 +49,7 @@ var DeleteFilesCommand = &cli.Command{
 func deleteFiles(c *cli.Context) error {
 	directory := ""
 	maxAgeInHours := c.Int(flagMaxAgeHoursLong)
+	loopInterval := c.Int(flagLoopIntervalLong)
 
 	switch c.Args().Len() {
 	case 1:
@@ -46,7 +63,62 @@ func deleteFiles(c *cli.Context) error {
 	}
 
 	args := deletion.Args{Directory: directory, MaxAgeInHours: maxAgeInHours}
-	return deleteFilesWithArgs(args)
+
+	loopStopper := registerUnixSignals()
+	defer close(loopStopper)
+
+	runDeletionLoop(args, loopInterval, loopStopper)
+
+	return nil
+}
+
+// registerUnixSignals listens to different unix signals (that Docker or a user might cause) and returns a semaphore
+// channel. A value sent through this channel should stop the deletion loop.
+func registerUnixSignals() (loopStopper chan bool) {
+	loopStopper = make(chan bool, 1)
+	procSignals := make(chan os.Signal, 1)
+
+	signal.Notify(procSignals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGKILL)
+
+	go func() {
+		listening := true
+		for listening {
+			select {
+			case <-procSignals:
+				loopStopper <- true
+				listening = false
+				break
+			}
+		}
+
+		close(procSignals)
+	}()
+
+	return loopStopper
+}
+
+func runDeletionLoop(args deletion.Args, interval int, loopStopper chan bool) {
+	var err error
+	intervalInMin := time.Duration(interval) * time.Minute
+	ticker := time.NewTicker(intervalInMin)
+
+	for {
+		select {
+		case <-loopStopper:
+			ticker.Stop()
+			fmt.Println("[tempdel] Exiting tempdel...")
+			os.Exit(0)
+		case <-ticker.C:
+			log.Debug("[tempdel] Start deletion run...")
+			err = deleteFilesWithArgs(args)
+			if err != nil {
+				log.Errorf("[tempdel] Deleting files failed with this error: %s", err.Error())
+			}
+			log.Debug("[tempdel] End deletion run.")
+		default:
+		}
+	}
+
 }
 
 func deleteFilesWithArgs(args deletion.Args) error {
