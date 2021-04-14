@@ -66,11 +66,11 @@ func Test_deleter_deleteFile(t *testing.T) {
 		assert.Empty(t, sut.Results)
 
 		// when
-		err := sut.deleteFile(file)
+		err := sut.deleteFile(file, nil)
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, 1, sut.Results.passed)
+		assert.Equal(t, 1, sut.Results.deleted)
 		assert.Equal(t, 0, sut.Results.failed)
 		assert.Equal(t, 0, sut.Results.skipped)
 	})
@@ -86,12 +86,12 @@ func Test_deleter_deleteFile(t *testing.T) {
 		sut, _ := New(Args{Directory: "dir", MaxAgeInHours: testMaxAgeInHours})
 
 		// when
-		err := sut.deleteFile(path)
+		err := sut.deleteFile(path, nil)
 
 		// then
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "file does not exist")
-		assert.Equal(t, 0, sut.Results.passed)
+		assert.Equal(t, 0, sut.Results.deleted)
 		assert.Equal(t, 1, sut.Results.failed)
 		assert.Equal(t, 0, sut.Results.skipped)
 		(remover).(*mockFileRemover).AssertExpectations(t)
@@ -169,7 +169,7 @@ func TestResults_fail(t *testing.T) {
 
 	// when
 	for i := 0; i < 9; i++ {
-		sut.fail(fmt.Sprintf("file /file_%d", i), assert.AnError)
+		sut.fail(fmt.Sprintf("file /file_%d", i), nil, assert.AnError)
 	}
 
 	assert.Equal(t, 9, sut.failed)
@@ -180,10 +180,10 @@ func TestResults_pass(t *testing.T) {
 
 	// when
 	for i := 0; i < 9; i++ {
-		sut.pass(fmt.Sprintf("file /file_%d", i))
+		sut.pass(fmt.Sprintf("file /file_%d", i), nil)
 	}
 
-	assert.Equal(t, 9, sut.passed)
+	assert.Equal(t, 9, sut.deleted)
 }
 
 func TestResults_skip(t *testing.T) {
@@ -236,7 +236,7 @@ func Test_deleter_Execute(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		expectedStats := Results{
-			passed:  2,
+			deleted: 2,
 			failed:  0,
 			skipped: 2,
 		}
@@ -271,7 +271,7 @@ func Test_deleter_Execute(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		expectedStats := Results{
-			passed:  3,
+			deleted: 3,
 			failed:  0,
 			skipped: 2,
 		}
@@ -307,7 +307,7 @@ func Test_deleter_Execute(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		expectedStats := Results{
-			passed:  2,
+			deleted: 2,
 			failed:  0,
 			skipped: 3,
 		}

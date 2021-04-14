@@ -91,7 +91,7 @@ func (d *deleter) filterOldFiles(path string, info os.FileInfo, err error) error
 	}
 
 	if fileOlderThan(d.MaxAgeInHours, info.ModTime()) {
-		return d.deleteFile(path)
+		return d.deleteFile(path, nil)
 	}
 
 	d.Results.skip(path)
@@ -122,7 +122,7 @@ func (d *deleter) filterOldDirectories(path string, info os.FileInfo, err error)
 	// deleting empty directories is simpler than checking the timestamp because the timestamp changes on every
 	// file deletion inside the directory
 	if empty {
-		return d.deleteFile(path)
+		return d.deleteFile(path, info)
 	}
 	d.Results.skip(path)
 
@@ -146,12 +146,12 @@ func isDirectoryEmpty(name string) (bool, error) {
 	return false, err
 }
 
-func (d *deleter) deleteFile(path string) error {
+func (d *deleter) deleteFile(path string, info os.FileInfo) error {
 	err := remover.Remove(path)
 	if err != nil {
 		d.Results.fail(path, err)
 	} else {
-		d.Results.pass(path)
+		d.Results.pass(path, info)
 	}
 
 	return err
@@ -169,14 +169,14 @@ func fileOlderThan(maxAgeHours int, fileTime time.Time) bool {
 }
 
 type Results struct {
-	passed  int
+	deleted int
 	failed  int
 	skipped int
 }
 
 // PrintStats prints deletion statistics as one-liner.
 func (r *Results) PrintStats() {
-
+	log.Infof("objects deleted: %d, skipped: %d, failed: %d", r.deleted, r.skipped, r.failed)
 }
 
 func (r *Results) fail(path string, err error) {
@@ -184,9 +184,9 @@ func (r *Results) fail(path string, err error) {
 	r.failed++
 }
 
-func (r *Results) pass(path string) {
+func (r *Results) pass(path string, info os.FileInfo) {
 	log.Debugf("deleted: %s", path)
-	r.passed++
+	r.deleted++
 }
 
 func (r *Results) skip(path string) {
