@@ -60,7 +60,7 @@ func Test_deleter_deleteFile(t *testing.T) {
 		dir, _ := ioutil.TempDir(os.TempDir(), "tempdel-")
 		defer func() { _ = os.RemoveAll(dir) }()
 		oldness := nowClock.Now().Add(-20 * time.Hour)
-		file := createFileWithTime(t, dir, oldness)
+		file := createFileWithTime(t, dir, "", oldness)
 
 		sut, _ := New(Args{Directory: dir, MaxAgeInHours: testMaxAgeInHours})
 		assert.Empty(t, sut.Results)
@@ -81,6 +81,7 @@ func Test_deleter_deleteFile(t *testing.T) {
 		removerMock := &mockFileRemover{}
 		removerMock.On("Remove", path).Return(os.ErrNotExist)
 		remover = removerMock
+		defer func() { remover = &realFileRemover{} }()
 
 		sut, _ := New(Args{Directory: "dir", MaxAgeInHours: testMaxAgeInHours})
 
@@ -214,6 +215,57 @@ func Test_deleter_filterOldFiles(t *testing.T) {
 	})
 }
 
+func Test_deleter_Execute(t *testing.T) {
+	t.Run("should delete old files and leave new files", func(t *testing.T) {
+		// given
+		startDir, _ := ioutil.TempDir(os.TempDir(), "tempdel-")
+		defer func() { _ = os.RemoveAll(startDir) }()
+		// Name files ABC... because fileWalk iterates files alphabetically
+		oldTime := nowClock.Now().Add(-testMaxAgeInHours - 20*time.Hour)
+		newTime := nowClock.Now().Add(-2 * time.Hour)
+		deleteFile1 := createFileWithTime(t, startDir, "a-", oldTime)
+		leaveFile1 := createFileWithTime(t, startDir, "b-", newTime)
+		deleteFile2 := createFileWithTime(t, startDir, "c-", oldTime)
+		leaveFile2 := createFileWithTime(t, startDir, "d-", newTime)
+
+		sut, _ := New(Args{Directory: startDir, MaxAgeInHours: testMaxAgeInHours})
+
+		// when
+		actual, err := sut.Execute()
+
+		// then
+		require.NoError(t, err)
+		expectedStats := Results{
+			passed:  2,
+			failed:  0,
+			skipped: 2,
+		}
+		assert.Equal(t, expectedStats, *actual)
+		assertFileNotExists(t, deleteFile1)
+		assertFileNotExists(t, deleteFile2)
+		assertFileExists(t, leaveFile1)
+		assertFileExists(t, leaveFile2)
+	})
+}
+
+func assertFileExists(t *testing.T, path string) {
+	t.Helper()
+
+	_, err := os.Stat(path)
+	assert.NoError(t, err)
+}
+
+func assertFileNotExists(t *testing.T, path string) {
+	t.Helper()
+
+	_, err := os.Stat(path)
+	assert.Error(t, err, "a NotExistError is expected to show that the file object was properly deleted")
+	// expect only NotExistErr and fail all other errors
+	if !os.IsNotExist(err) {
+		assert.NoError(t, err)
+	}
+}
+
 type testClock struct {
 	desiredTime time.Time
 }
@@ -222,10 +274,10 @@ func (t *testClock) Now() time.Time {
 	return t.desiredTime
 }
 
-func createFileWithTime(t *testing.T, directory string, fileTime time.Time) string {
+func createFileWithTime(t *testing.T, directory string, filenamePrefix string, fileTime time.Time) string {
 	t.Helper()
 
-	file, _ := ioutil.TempFile(directory, "tempdel-")
+	file, _ := ioutil.TempFile(directory, filenamePrefix+"tempdel-")
 	filePath := file.Name()
 
 	err := os.Chtimes(filePath, fileTime, fileTime)
