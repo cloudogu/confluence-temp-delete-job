@@ -1,8 +1,10 @@
 package deletion
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -44,7 +46,25 @@ func TestResults_skip(t *testing.T) {
 }
 
 func TestResults_PrintStats(t *testing.T) {
+	t.Run("should print stats nicely", func(t *testing.T) {
+		realStdout := os.Stdout
+		defer restoreOriginalStdout(realStdout)
+		fakeReaderPipe, fakeWriterPipe := routeStdoutToReplacement()
 
+		sut := &Results{
+			deleted:       20,
+			deletedSizeKB: 24_890,
+			failed:        1,
+			skipped:       8,
+		}
+
+		// when
+		sut.PrintStats()
+
+		// then
+		actual := captureOutput(fakeReaderPipe, fakeWriterPipe, realStdout)
+		assert.Equal(t, "[tempdel] deleted: 20 (24 MB), skipped: 8, failed: 1\n", actual)
+	})
 }
 
 func TestResults(t *testing.T) {
@@ -124,4 +144,33 @@ func fileInfo(t *testing.T, path string) os.FileInfo {
 	info, err := os.Stat(path)
 	assert.NoError(t, err, "error while getting file info on "+path)
 	return info
+}
+
+func routeStdoutToReplacement() (readerPipe, writerPipe *os.File) {
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	return r, w
+}
+
+func captureOutput(fakeReaderPipe, fakeWriterPipe, originalStdout *os.File) string {
+	outC := make(chan string)
+	// copy the output in a separate goroutine so printing can't block indefinitely
+	go func() {
+		var buf bytes.Buffer
+		_, _ = io.Copy(&buf, fakeReaderPipe)
+		outC <- buf.String()
+	}()
+
+	// back to normal state
+	fakeWriterPipe.Close()
+	restoreOriginalStdout(originalStdout)
+
+	actualOutput := <-outC
+
+	return actualOutput
+}
+
+func restoreOriginalStdout(stdout *os.File) {
+	os.Stdout = stdout
 }

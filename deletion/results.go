@@ -1,6 +1,9 @@
 package deletion
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 // Results keeps statistics about the deletion process.
 type Results struct {
@@ -12,7 +15,8 @@ type Results struct {
 
 // PrintStats prints deletion statistics as one-liner.
 func (r *Results) PrintStats() {
-	log.Infof("objects deleted: %d, skipped: %d, failed: %d", r.deleted, r.skipped, r.failed)
+	sizeMB := r.deletedSizeKB / 1024
+	fmt.Printf("[tempdel] deleted: %d (%d MB), skipped: %d, failed: %d\n", r.deleted, sizeMB, r.skipped, r.failed)
 }
 
 func (r *Results) fail(path string, err error) {
