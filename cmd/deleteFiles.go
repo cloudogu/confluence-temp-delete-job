@@ -19,6 +19,8 @@ const (
 	flagLoopIntervalShort = "i"
 )
 
+const cpuLoadSleepInSec = 2
+
 var log = logging.MustGetLogger("cmd")
 
 // DeleteFilesCommand provides CLI entry logic for deleting files..
@@ -68,6 +70,7 @@ func deleteFiles(c *cli.Context) error {
 	loopStopper := registerUnixSignals()
 	defer close(loopStopper)
 
+	fmt.Println("[tempdel] Start delete-loop...")
 	runDeletionLoop(args, loopIntervalInSecs, loopStopper)
 
 	return nil
@@ -113,6 +116,8 @@ func runDeletionLoop(args deletion.Args, intervalInSecs int, loopStopper chan bo
 			}
 			log.Debug("[tempdel] End deletion run.")
 		default:
+			// reduces CPU load but stretches reaction to unix signals
+			time.Sleep(cpuLoadSleepInSec * time.Second)
 		}
 	}
 }
