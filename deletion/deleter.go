@@ -162,8 +162,5 @@ func fileOlderThan(maxAgeHours int, fileTime time.Time) bool {
 	now := nowClock.Now()
 
 	diff := now.Sub(fileTime)
-	if diff <= ageCutOff {
-		return false
-	}
-	return true
+	return diff > ageCutOff
 }
