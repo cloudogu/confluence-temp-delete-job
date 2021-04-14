@@ -91,7 +91,7 @@ func (d *deleter) filterOldFiles(path string, info os.FileInfo, err error) error
 	}
 
 	if fileOlderThan(d.MaxAgeInHours, info.ModTime()) {
-		return d.deleteFile(path, nil)
+		return d.deleteFile(path, info)
 	}
 
 	d.Results.skip(path)
@@ -166,30 +166,4 @@ func fileOlderThan(maxAgeHours int, fileTime time.Time) bool {
 		return false
 	}
 	return true
-}
-
-type Results struct {
-	deleted int
-	failed  int
-	skipped int
-}
-
-// PrintStats prints deletion statistics as one-liner.
-func (r *Results) PrintStats() {
-	log.Infof("objects deleted: %d, skipped: %d, failed: %d", r.deleted, r.skipped, r.failed)
-}
-
-func (r *Results) fail(path string, err error) {
-	log.Debugf("failed: %s with error '%v'", path, err)
-	r.failed++
-}
-
-func (r *Results) pass(path string, info os.FileInfo) {
-	log.Debugf("deleted: %s", path)
-	r.deleted++
-}
-
-func (r *Results) skip(path string) {
-	log.Debugf("skipped: %s", path)
-	r.skipped++
 }

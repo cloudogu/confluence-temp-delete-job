@@ -1,7 +1,6 @@
 package deletion
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -61,12 +60,13 @@ func Test_deleter_deleteFile(t *testing.T) {
 		defer func() { _ = os.RemoveAll(dir) }()
 		oldness := nowClock.Now().Add(-20 * time.Hour)
 		file := createFileWithTime(t, dir, "", oldness)
+		fileInfo, _ := os.Stat(file)
 
 		sut, _ := New(Args{Directory: dir, MaxAgeInHours: testMaxAgeInHours})
 		assert.Empty(t, sut.Results)
 
 		// when
-		err := sut.deleteFile(file, nil)
+		err := sut.deleteFile(file, fileInfo)
 
 		// then
 		require.NoError(t, err)
@@ -164,39 +164,6 @@ func Test_fileOlderThan(t *testing.T) {
 	})
 }
 
-func TestResults_fail(t *testing.T) {
-	sut := &Results{}
-
-	// when
-	for i := 0; i < 9; i++ {
-		sut.fail(fmt.Sprintf("file /file_%d", i), nil, assert.AnError)
-	}
-
-	assert.Equal(t, 9, sut.failed)
-}
-
-func TestResults_pass(t *testing.T) {
-	sut := &Results{}
-
-	// when
-	for i := 0; i < 9; i++ {
-		sut.pass(fmt.Sprintf("file /file_%d", i), nil)
-	}
-
-	assert.Equal(t, 9, sut.deleted)
-}
-
-func TestResults_skip(t *testing.T) {
-	sut := &Results{}
-
-	// when
-	for i := 0; i < 9; i++ {
-		sut.skip(fmt.Sprintf("file /file_%d", i))
-	}
-
-	assert.Equal(t, 9, sut.skipped)
-}
-
 func Test_deleter_filterOldFiles(t *testing.T) {
 	t.Run("should skip directories", func(t *testing.T) {
 		dir, _ := ioutil.TempDir(os.TempDir(), "tempdel-")
@@ -235,12 +202,9 @@ func Test_deleter_Execute(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		expectedStats := Results{
-			deleted: 2,
-			failed:  0,
-			skipped: 2,
-		}
-		assert.Equal(t, expectedStats, *actual)
+		assert.Equal(t, 2, actual.deleted)
+		assert.Equal(t, 0, actual.failed)
+		assert.Equal(t, 2, actual.skipped)
 		assertFileNotExists(t, deleteFile1)
 		assertFileNotExists(t, deleteFile2)
 		assertFileExists(t, leaveFile1)
@@ -270,12 +234,9 @@ func Test_deleter_Execute(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		expectedStats := Results{
-			deleted: 3,
-			failed:  0,
-			skipped: 2,
-		}
-		assert.Equal(t, expectedStats, *actual)
+		assert.Equal(t, 3, actual.deleted)
+		assert.Equal(t, 0, actual.failed)
+		assert.Equal(t, 2, actual.skipped)
 		assertFileNotExists(t, deleteDir1)
 		assertFileNotExists(t, deleteFile2)
 		assertFileNotExists(t, deleteFile3)
@@ -306,12 +267,9 @@ func Test_deleter_Execute(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		expectedStats := Results{
-			deleted: 2,
-			failed:  0,
-			skipped: 3,
-		}
-		assert.Equal(t, expectedStats, *actual)
+		assert.Equal(t, 2, actual.deleted)
+		assert.Equal(t, 0, actual.failed)
+		assert.Equal(t, 3, actual.skipped)
 		assertFileNotExists(t, deleteFile2)
 		assertFileNotExists(t, deleteFile3)
 		assertFileExists(t, leaveDir1)
