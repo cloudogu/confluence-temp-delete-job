@@ -138,11 +138,11 @@ func isDirectoryEmpty(name string) (bool, error) {
 	defer func() { _ = f.Close() }()
 
 	const limitFileCount = 2 // we only want to know if the dir is empty and not how many objects there are
-	fileInfos, err := f.Readdir(limitFileCount)
+	_, err = f.Readdir(limitFileCount)
 	if err == io.EOF {
 		return true, nil
 	}
-	println(fileInfos)
+
 	return false, err
 }
 
