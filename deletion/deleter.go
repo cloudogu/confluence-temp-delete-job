@@ -110,7 +110,7 @@ func (d *deleter) filterOldDirectories(path string, info os.FileInfo, err error)
 	}
 
 	if !info.IsDir() {
-		log.Debug("walk directories: skip file %s", path)
+		log.Debugf("walk directories: skip file %s", path)
 		return nil
 	}
 
