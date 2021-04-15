@@ -16,9 +16,13 @@ There are three basic input parameters:
 tempdel delete-loop --age 12 --interval 60 /opt/atlassian/confluence/temp
 ```
 
-For more information, calling `tempdel --help` provides more information about the tool.
+More information about the tool can be found in the [operations](docs/operations/delete-loop_en.md) documentation, or by calling `tempdel --help` provides more information.
 
 Documentation on developing `tempdel` can be found in [English](docs/developing_en.md) and [German](docs/developing_de.md).
+
+## License
+
+MIT License
 
 ---
 ### What is the Cloudogu EcoSystem?
@@ -32,4 +36,4 @@ Want to talk to the Cloudogu team? Need help or support? There are several ways 
 * [Email hello@cloudogu.com](mailto:hello@cloudogu.com)
 
 ---
-&copy; 2020 Cloudogu GmbH - MADE WITH :heart:&nbsp;FOR DEV ADDICTS. [Legal notice / Impressum](https://cloudogu.com/imprint.html)
+&copy; 2021 Cloudogu GmbH - MADE WITH :heart:&nbsp;FOR DEV ADDICTS. [Legal notice / Impressum](https://cloudogu.com/imprint.html)
