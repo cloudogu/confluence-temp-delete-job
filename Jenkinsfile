@@ -1,5 +1,5 @@
 #!groovy
-@Library(['github.com/cloudogu/ces-build-lib@1.44.2'])
+@Library(['github.com/cloudogu/ces-build-lib@1.44.3'])
 import com.cloudogu.ces.cesbuildlib.*
 
 node('docker') {
@@ -16,7 +16,7 @@ node('docker') {
         new Docker(this).image('golang:1.14.13').mountJenkinsUser().inside("--volume ${WORKSPACE}:${projectPath}") {
             stage('Build') {
                 make 'clean compile checksum'
-                archiveArtifacts 'target/**/*.sha256sum'
+                archiveArtifacts 'target/*'
             }
 
             stage('Unit Test') {
