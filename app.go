@@ -15,6 +15,7 @@ import (
 // This information will be overwritten during the build process
 var Version = "development"
 var log = logging.MustGetLogger("main")
+var appExiter exiter = &defaultExiter{}
 
 func main() {
 	app := cli.NewApp()
@@ -33,7 +34,7 @@ func main() {
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Errorf("%+v\n", err)
-		os.Exit(1)
+		appExiter.exit(1)
 	}
 }
 
@@ -62,4 +63,15 @@ func configureLogging(c *cli.Context) error {
 	}
 	logging.SetLevel(logLevel, "")
 	return nil
+}
+
+// testing interface
+type exiter interface {
+	exit(exitCode int)
+}
+
+type defaultExiter struct{}
+
+func (*defaultExiter) exit(exitCode int) {
+	os.Exit(exitCode)
 }
