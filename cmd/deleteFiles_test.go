@@ -76,6 +76,32 @@ func Test_runDeletionLoop(t *testing.T) {
 	})
 }
 
+func Test_registerUnixSignals(t *testing.T) {
+	realStdout := os.Stdout
+
+	t.Run("should stop listening and send true through the stop channel", func(t *testing.T) {
+		defer restoreOriginalStdout(realStdout)
+		fakeReaderPipe, fakeWriterPipe := routeStdoutToReplacement()
+
+		thisTestProcess, procErr := os.FindProcess(os.Getpid())
+		if procErr != nil {
+			t.Fatal(procErr)
+		}
+
+		// when
+		stopChan := registerUnixSignals()
+
+		// then
+		sigErr := thisTestProcess.Signal(os.Interrupt)
+		println("Sending SIGINT")
+		time.Sleep(2 * time.Second)
+		assert.NoError(t, sigErr)
+		assert.True(t, <-stopChan)
+		actualOutput := captureOutput(fakeReaderPipe, fakeWriterPipe, realStdout)
+		assert.Contains(t, actualOutput, "[tempdel] Caught signal...\n")
+	})
+}
+
 func routeStdoutToReplacement() (readerPipe, writerPipe *os.File) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w

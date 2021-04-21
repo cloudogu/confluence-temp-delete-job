@@ -89,7 +89,7 @@ func registerUnixSignals() (loopStopper chan bool) {
 			loopStopper <- true
 			break
 		}
-
+		fmt.Println("[tempdel] Caught signal...")
 		close(procSignals)
 	}()
 
