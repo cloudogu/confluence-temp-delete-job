@@ -11,15 +11,15 @@ This command accepts three basic input parameters:
 
 ### Start directory
 
-The start directory is a mandatory parameter. The start directory can be freely selected and is not set to a specific value. There is no check if `tempdel` is executed against system relevant directories (**BETTER NOT,** because system damage may occur).
+The start directory is a mandatory parameter. The start directory can be freely selected and is not set to a specific value. There is no check if `tempdel` is executed against system-relevant directories (**BETTER NOT,** because system damage may occur).
 
 ### File age
 
-The `--age`/`-a` switch can be used to optionally specify the maximum age (counted in hours from `now`) that files can have without being deleted. Only a positive integer value is accepted. Default value is `12` hours.
+The `--age`/`-a` switch can be used to optionally specify the maximum age (counted in hours from `now`) that files can have without being deleted. Only a positive integer value is accepted. The default value is `12` hours.
 
 ### Deletion run interval
 
-The `--age`/`-a` switch can be used to optionally specify the interval (counted in minutes) between each deletion execution. Only a positive integer value is accepted. Default value is `60` minutes.
+The `--age`/`-a` switch can be used to optionally specify the interval (counted in minutes) between each deletion execution. Only a positive integer value is accepted. The default value is `60` minutes.
 
 ## Manpage
 
