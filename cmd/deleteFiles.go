@@ -52,7 +52,7 @@ func deleteFiles(c *cli.Context) error {
 	directory := ""
 	maxAgeInHours := c.Int(flagMaxAgeHoursLong)
 	loopIntervalInMin := c.Int(flagLoopIntervalMinutesLong)
-	loopIntervalInSec := time.Duration(loopIntervalInMin) * time.Minute * time.Second
+	loopInterval := minuteToDuration(loopIntervalInMin)
 
 	switch c.Args().Len() {
 	case 1:
@@ -71,9 +71,13 @@ func deleteFiles(c *cli.Context) error {
 	defer close(loopStopper)
 
 	fmt.Println("[tempdel] Start delete-loop...")
-	runDeletionLoop(args, loopIntervalInSec, loopStopper)
+	runDeletionLoop(args, loopInterval, loopStopper)
 
 	return nil
+}
+
+func minuteToDuration(min int) time.Duration {
+	return time.Duration(min) * time.Minute
 }
 
 // registerUnixSignals listens to different unix signals (that Docker or a user might cause) and returns a semaphore

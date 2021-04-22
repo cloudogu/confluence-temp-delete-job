@@ -7,3 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - initial release (#1)
+
+### Fixed
+- Fixes bug in interval calculation which evaluates minutes to years (#3)

@@ -130,3 +130,16 @@ func captureOutput(fakeReaderPipe, fakeWriterPipe, originalStdout *os.File) stri
 func restoreOriginalStdout(stdout *os.File) {
 	os.Stdout = stdout
 }
+
+func Test_minToSec(t *testing.T) {
+	t.Run("should convert 1 minute to a duration of 60 seconds", func(t *testing.T) {
+		actual := minuteToDuration(1)
+
+		assert.Equal(t, time.Duration(60)*time.Second, actual)
+	})
+	t.Run("should convert 60 minutes to a duration of 1 hour", func(t *testing.T) {
+		actual := minuteToDuration(60)
+
+		assert.Equal(t, time.Duration(1)*time.Hour, actual)
+	})
+}
