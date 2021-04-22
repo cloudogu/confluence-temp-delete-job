@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	flagMaxAgeHoursLong   = "age"
-	flagMaxAgeHoursShort  = "a"
-	flagLoopIntervalLong  = "interval"
-	flagLoopIntervalShort = "i"
+	flagMaxAgeHoursLong          = "age"
+	flagMaxAgeHoursShort         = "a"
+	flagLoopIntervalMinutesLong  = "interval"
+	flagLoopIntervalMinutesShort = "i"
 )
 
 const cpuLoadSleepInSec = 2
@@ -40,10 +40,10 @@ var DeleteFilesCommand = &cli.Command{
 			Aliases: []string{flagMaxAgeHoursShort},
 		},
 		&cli.IntFlag{
-			Name:    flagLoopIntervalLong,
+			Name:    flagLoopIntervalMinutesLong,
 			Usage:   "Sets the interval in minutes to run the deletion routine. Must be larger than zero.",
 			Value:   60,
-			Aliases: []string{flagLoopIntervalShort},
+			Aliases: []string{flagLoopIntervalMinutesShort},
 		},
 	},
 }
@@ -51,8 +51,8 @@ var DeleteFilesCommand = &cli.Command{
 func deleteFiles(c *cli.Context) error {
 	directory := ""
 	maxAgeInHours := c.Int(flagMaxAgeHoursLong)
-	loopIntervalInMin := c.Int(flagLoopIntervalLong)
-	loopIntervalInSecs := loopIntervalInMin * 60
+	loopIntervalInMin := c.Int(flagLoopIntervalMinutesLong)
+	loopIntervalInSec := time.Duration(loopIntervalInMin) * time.Minute * time.Second
 
 	switch c.Args().Len() {
 	case 1:
@@ -71,7 +71,7 @@ func deleteFiles(c *cli.Context) error {
 	defer close(loopStopper)
 
 	fmt.Println("[tempdel] Start delete-loop...")
-	runDeletionLoop(args, loopIntervalInSecs, loopStopper)
+	runDeletionLoop(args, loopIntervalInSec, loopStopper)
 
 	return nil
 }
@@ -97,10 +97,9 @@ func registerUnixSignals() (loopStopper chan bool) {
 }
 
 // the interval is here chosen for seconds for reasons of unit test duration
-func runDeletionLoop(args deletion.Args, intervalInSecs int, loopStopper chan bool) {
+func runDeletionLoop(args deletion.Args, intervalInSecs time.Duration, loopStopper chan bool) {
 	var err error
-	intervalInMin := time.Duration(intervalInSecs) * time.Second
-	ticker := time.NewTicker(intervalInMin)
+	ticker := time.NewTicker(intervalInSecs)
 
 	for {
 		select {

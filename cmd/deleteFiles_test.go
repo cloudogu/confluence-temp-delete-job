@@ -57,7 +57,7 @@ func Test_runDeletionLoop(t *testing.T) {
 		stopChan := make(chan bool, 1)
 
 		fakeReaderPipe, fakeWriterPipe := routeStdoutToReplacement()
-		intervalInSec := 1
+		intervalInSec := 1 * time.Second
 		args := deletion.Args{
 			Directory:     dir,
 			MaxAgeInHours: 12,
@@ -67,7 +67,7 @@ func Test_runDeletionLoop(t *testing.T) {
 		go runDeletionLoop(args, intervalInSec, stopChan)
 
 		// stop when loop ran 1x
-		time.Sleep(time.Duration(intervalInSec+cpuLoadSleepInSec+1) * time.Second)
+		time.Sleep(intervalInSec + cpuLoadSleepInSec*time.Second + 1*time.Second)
 		stopChan <- true
 
 		// then
@@ -119,7 +119,7 @@ func captureOutput(fakeReaderPipe, fakeWriterPipe, originalStdout *os.File) stri
 	}()
 
 	// back to normal state
-	fakeWriterPipe.Close()
+	_ = fakeWriterPipe.Close()
 	restoreOriginalStdout(originalStdout)
 
 	actualOutput := <-outC
