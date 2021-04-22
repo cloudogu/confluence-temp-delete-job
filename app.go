@@ -14,8 +14,11 @@ import (
 // be used in development environments
 // This information will be overwritten during the build process
 var Version = "development"
-var log = logging.MustGetLogger("main")
-var appExiter exiter = &defaultExiter{}
+
+var (
+	log              = logging.MustGetLogger("main")
+	appExiter exiter = &defaultExiter{}
+)
 
 func main() {
 	app := cli.NewApp()
