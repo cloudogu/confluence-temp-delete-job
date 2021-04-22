@@ -26,7 +26,6 @@ func Test_newExiter(t *testing.T) {
 	})
 }
 
-// test util stuff
 type mockExiter struct {
 	mock.Mock
 }
