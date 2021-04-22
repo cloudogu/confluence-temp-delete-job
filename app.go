@@ -65,7 +65,7 @@ func configureLogging(c *cli.Context) error {
 	return nil
 }
 
-// testing interface
+// exiter is an interface that enables testing this app without exiting any test code.
 type exiter interface {
 	exit(exitCode int)
 }
