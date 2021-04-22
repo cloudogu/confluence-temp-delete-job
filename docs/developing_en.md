@@ -1,6 +1,6 @@
 # develop confluence-temp-delete-job
 
-This document describes developmen-centric aspects.
+This document describes development-centric aspects.
 
 ## Tools
 
