@@ -13,6 +13,27 @@ node('docker') {
             checkout scm
         }
 
+        new Docker(this).image('golang:1.14.13').mountJenkinsUser().inside("--volume ${WORKSPACE}:${projectPath}") {
+            stage('Build') {
+                make 'clean compile checksum'
+                archiveArtifacts 'target/*'
+            }
+
+            stage('Unit Test') {
+                make 'unit-test'
+                junit allowEmptyResults: true, testResults: 'target/unit-tests/*-tests.xml'
+            }
+
+            stage('Static Analysis') {
+                def commitSha = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sonarqube-gh', usernameVariable: 'USERNAME', passwordVariable: 'REVIEWDOG_GITHUB_API_TOKEN']]) {
+                    withEnv(["CI_PULL_REQUEST=${env.CHANGE_ID}", "CI_COMMIT=${commitSha}", "CI_REPO_OWNER=cloudogu", "CI_REPO_NAME=${projectName}"]) {
+                        make 'static-analysis'
+                    }
+                }
+            }
+        }
+
         stage('SonarQube') {
             def branch = "${env.BRANCH_NAME}"
 
@@ -24,7 +45,7 @@ node('docker') {
                 gitWithCredentials("fetch --all")
 
                 if (branch == "main") {
-                    echo "This branch has been detected as the master branch."
+                    echo "This branch has been detected as the main branch."
                     sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=${projectName} -Dsonar.projectName=${projectName}"
                 } else if (branch == "develop") {
                     echo "This branch has been detected as the develop branch."
