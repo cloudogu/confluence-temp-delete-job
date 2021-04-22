@@ -75,5 +75,3 @@ The nature of Confluence temp files is still unclear. Therefore, a single delete
 1. recursively delete directories that are left empty.
 
 The two-phase approach has the advantage of deleting old directories that may contain new files. A complicating factor is that a file deletion updates the file stamp of a directory. Therefore the 1st phase is limited only to files. In the 2nd phase, only empty directories are deleted, since their timestamps can no longer be relied upon anyway due to the file delete update.
-
-Translated with www.DeepL.com/Translator (free version)
