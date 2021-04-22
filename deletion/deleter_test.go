@@ -33,7 +33,7 @@ func TestNew(t *testing.T) {
 	}{
 		{"should pass", args{Args{Directory: "/test", MaxAgeInHours: 12}}, true, false},
 		{"should pass with 0 age", args{Args{Directory: "/test", MaxAgeInHours: 0}}, true, false},
-		{"should fail with dir", args{Args{Directory: "", MaxAgeInHours: 12}}, false, true},
+		{"should fail with invalid directory", args{Args{Directory: "", MaxAgeInHours: 12}}, false, true},
 		{"should fail with age", args{Args{Directory: "/a", MaxAgeInHours: -1}}, false, true},
 		{"should fail with both dir and age", args{Args{Directory: "", MaxAgeInHours: -1}}, false, true},
 	}
