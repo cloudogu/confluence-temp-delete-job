@@ -31,17 +31,17 @@ tempdel delete-loop -i 1 ...
 
 **Test files with specific timestamps:**
 
-Test files with certain timestamps help to show the delete behavior in the real filesystem:
+Test files with certain timestamps help to show the deletion behavior in a real filesystem:
 
 ```bash
 # create directory
 mkdir -p /tmp/conftemp
 # create empty files with timestamp 2021-03-03 03:03
-touch deleteMe -t 2021030303
-touch deleteMe2 -t 2021030303
+touch /tmp/conftemp/deleteMe -t 2021030303
+touch /tmp/conftemp/deleteMe2 -t 2021030303
 # create empty files with current timestamp
-touch leaveMe
-touch leaveMe2
+touch /tmp/conftemp/leaveMe
+touch /tmp/conftemp/leaveMe2
 
 tempdel delete-loop ...
 ```

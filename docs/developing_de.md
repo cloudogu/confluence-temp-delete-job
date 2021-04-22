@@ -37,11 +37,11 @@ Testdateien mit bestimmten Zeitstempel können helfen, das Löschverhalten im ec
 # Verzeichnis anlegen
 mkdir -p /tmp/conftemp
 # leere Dateien mit Zeitstempel 2021-03-03 03:03 anlegen
-touch deleteMe -t 202103030303
-touch deleteMe2 -t 202103030303
+touch /tmp/conftemp/deleteMe -t 202103030303
+touch /tmp/conftemp/deleteMe2 -t 202103030303
 # leere Dateien mit aktuellem Zeitstempel anlegen
-touch leaveMe
-touch leaveMe2
+touch /tmp/conftemp/leaveMe
+touch /tmp/conftemp/leaveMe2
 
 tempdel delete-loop ...
 ```
