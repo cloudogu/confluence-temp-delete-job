@@ -11,9 +11,8 @@ import (
 	"time"
 )
 
-var log = logging.MustGetLogger("deletion")
-
 var (
+	log                  = logging.MustGetLogger("deletion")
 	nowClock clock       = &realClock{}
 	remover  fileRemover = &realFileRemover{}
 )
