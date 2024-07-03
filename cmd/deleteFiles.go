@@ -59,7 +59,7 @@ func deleteFiles(c *cli.Context) error {
 		directory = c.Args().First()
 	case 0:
 		_ = cli.ShowAppHelp(c)
-		return fmt.Errorf("expected directory")
+		return fmt.Errorf("expected directory as argument")
 	default:
 		_ = cli.ShowAppHelp(c)
 		return fmt.Errorf("unexpected argument(s) found: %v", c.Args().Slice()[1:])
