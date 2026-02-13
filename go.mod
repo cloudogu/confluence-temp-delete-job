@@ -1,6 +1,6 @@
 module github.com/cloudogu/confluence-temp-delete-job
 
-go 1.22
+go 1.25.7
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1
